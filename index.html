@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>지식저장소</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<style>
+:root{
+  --bg:#f6f7f9;--panel:#ffffff;--panel2:#f0f2f5;--line:#dfe3e8;--text:#1b1f24;--muted:#5d6670;
+  --accent:#2f6fde;--accent-ink:#fff;--ok:#1f8a4c;--warn:#b7791f;--err:#c53030;--idle:#9aa3ad;
+  --ok-bg:#e6f4ec;--err-bg:#fdeaea;--warn-bg:#fdf3e1;--shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
+  --radius:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121417;--panel:#1a1d21;--panel2:#22262b;--line:#30353c;--text:#e6e8eb;--muted:#9aa3ad;
+  --accent:#6b9cff;--accent-ink:#0d1117;--ok:#4cc38a;--warn:#e0b04f;--err:#f07070;--idle:#6b737c;
+  --ok-bg:#16301f;--err-bg:#3a1b1b;--warn-bg:#352a14;--shadow:none;
+}}
+:root[data-theme="dark"]{
+  --bg:#121417;--panel:#1a1d21;--panel2:#22262b;--line:#30353c;--text:#e6e8eb;--muted:#9aa3ad;
+  --accent:#6b9cff;--accent-ink:#0d1117;--ok:#4cc38a;--warn:#e0b04f;--err:#f07070;--idle:#6b737c;
+  --ok-bg:#16301f;--err-bg:#3a1b1b;--warn-bg:#352a14;--shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 "Noto Sans KR",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+.topbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;font-size:17px;margin-right:auto;display:flex;align-items:center;gap:8px}
+.brand small{font-weight:400;color:var(--muted);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);font-size:13px;white-space:nowrap}
+.chip:hover{border-color:var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--idle);flex:none}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}.dot.busy{background:var(--warn);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.iconbtn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:4px 10px}
+main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+@media (max-width:960px){main{grid-template-columns:1fr;padding:12px 16px}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);min-width:0}
+.panel h2{font-size:15px;margin:0;padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.panel h2 .sp{margin-left:auto;font-weight:400;font-size:12px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:12px 14px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;text-align:left}
+.stat.active{border-color:var(--accent);outline:1px solid var(--accent)}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;gap:8px;padding:0 14px 12px}
+.toolbar input{flex:1;min-width:0}
+input[type=text],input[type=password],input[type=url],select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.notes{list-style:none;margin:0;padding:0 6px 10px;max-height:46vh;overflow:auto}
+.notes li{padding:9px 10px;border-radius:8px;cursor:pointer}
+.notes li:hover,.notes li.sel{background:var(--panel2)}
+.notes .t{font-weight:500}
+.notes .m{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.empty{padding:20px 14px;color:var(--muted);font-size:14px}
+.viewer{padding:4px 18px 18px;overflow-wrap:anywhere}
+.viewer h1{font-size:20px}.viewer h2{font-size:17px;border:0;padding:0}
+.viewer pre{background:var(--panel2);padding:10px;border-radius:8px;overflow:auto}
+.viewer code{background:var(--panel2);padding:1px 4px;border-radius:4px}
+.viewer .acts{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:6px}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 12px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.chat{display:flex;flex-direction:column;height:calc(100vh - 110px);min-height:520px;position:sticky;top:70px}
+@media (max-width:960px){.chat{position:static;height:auto;min-height:0}}
+.chatcfg{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:center}
+.chatcfg select{width:auto}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel2);padding:6px 12px}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.msgs{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-height:260px}
+.msg{max-width:92%;padding:9px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);white-space:pre-wrap}
+.msg.sys{align-self:center;font-size:12px;color:var(--muted);background:none;border:0}
+.msg .who{font-size:11px;color:var(--muted);margin-bottom:2px}
+.msg p:first-child{margin-top:0}.msg p:last-child{margin-bottom:0}
+.card{border:1px solid var(--accent);border-radius:10px;padding:10px 12px;background:var(--panel)}
+.card .row{display:grid;grid-template-columns:70px 1fr;gap:6px 8px;align-items:center;margin-bottom:6px}
+.card label{font-size:12px;color:var(--muted)}
+.composer{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+.composer textarea{min-height:44px;max-height:180px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);padding:0;width:min(560px,calc(100vw - 32px));box-shadow:0 10px 40px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-h{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700}
+.dlg-h button{margin-left:auto;border:0;background:none;font-size:20px;line-height:1}
+.dlg-b{padding:14px 16px;max-height:70vh;overflow:auto}
+.dlg-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.status{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);font-size:14px;margin-bottom:12px}
+.status.ok{background:var(--ok-bg);border-color:var(--ok)}
+.status.err{background:var(--err-bg);border-color:var(--err)}
+.status.busy{background:var(--warn-bg);border-color:var(--warn)}
+.status .dot{margin-top:6px}
+.steps{margin:0 0 12px;padding-left:20px;font-size:14px}
+.steps code,.hint code{background:var(--panel2);padding:1px 5px;border-radius:4px}
+.provlist{display:grid;gap:8px}
+.prov{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);text-align:left;width:100%}
+.prov .nm{font-weight:500}.prov .st{margin-left:auto;font-size:12px;color:var(--muted)}
+.toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:50}
+.toast{padding:10px 14px;border-radius:8px;background:var(--panel);border:1px solid var(--line);box-shadow:0 4px 16px rgba(0,0,0,.2);font-size:14px;display:flex;gap:8px;align-items:center;max-width:340px}
+.toast.ok{border-color:var(--ok)}.toast.err{border-color:var(--err)}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">지식저장소 <small>씨앗을 뿌리면 AI가 살을 붙입니다</small></div>
+  <div class="chips" id="chips"></div>
+  <button class="iconbtn" id="themeBtn" title="화면 밝기 전환">◐</button>
+</header>
+
+<main>
+  <section class="panel" aria-label="대시보드">
+    <h2>대시보드 <span class="sp" id="repoInfo">GitHub 미연결</span><button class="btn" id="reloadBtn" title="저장소 다시 읽기">새로고침</button></h2>
+    <div class="stats" id="stats"></div>
+    <div class="toolbar"><input type="text" id="search" placeholder="제목·태그·내용 검색"></div>
+    <ul class="notes" id="notes"></ul>
+    <div id="viewerWrap" hidden>
+      <div class="viewer" id="viewer"></div>
+    </div>
+  </section>
+
+  <section class="panel chat" aria-label="AI 대화 채널">
+    <h2>AI 대화 채널</h2>
+    <div class="chatcfg">
+      <select id="engine" aria-label="AI 선택"></select>
+      <div class="seg" role="tablist">
+        <button id="modeSeed" class="on" title="입력한 내용을 분류해 새 노트로 저장">씨앗 심기</button>
+        <button id="modeAsk" title="지식저장소 내용을 바탕으로 질문">질문하기</button>
+      </div>
+      <button class="btn" id="clearChat" title="대화 비우기">비우기</button>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="composer">
+      <textarea id="input" rows="2" placeholder="생각, 메모, 링크를 그대로 적으세요. (Enter 보내기, Shift+Enter 줄바꿈)"></textarea>
+      <button class="btn primary" id="sendBtn">보내기</button>
+    </div>
+  </section>
+</main>
+
+<!-- 연결 관리 -->
+<dialog id="dlgConn">
+  <div class="dlg-h">연결 관리 <button data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b"><div class="provlist" id="provList"></div>
+    <p class="hint">API 키와 토큰은 이 브라우저에만 저장되고 GitHub에는 올라가지 않습니다. 공용 PC에서는 쓰지 마세요.</p></div>
+</dialog>
+
+<!-- API 키 설정 -->
+<dialog id="dlgApi">
+  <div class="dlg-h"><span id="apiTitle">API 연결</span> <button data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b">
+    <div class="status" id="apiStatus"><span class="dot"></span><div>아직 연결하지 않았습니다.</div></div>
+    <div class="field" id="fBase"><label for="apiBase">서버 주소</label><input type="url" id="apiBase"><div class="hint" id="baseHint"></div></div>
+    <div class="field" id="fKey"><label for="apiKey">API 키</label><input type="password" id="apiKey" autocomplete="off"><div class="hint" id="keyHint"></div></div>
+    <div class="field"><label for="apiModel">모델</label><input type="text" id="apiModel" list="modelList"><datalist id="modelList"></datalist><div class="hint">연결 확인을 누르면 쓸 수 있는 모델 목록을 불러옵니다.</div></div>
+  </div>
+  <div class="dlg-f"><button class="btn" id="apiRemove">연결 해제</button><button class="btn primary" id="apiTest">저장하고 연결 확인</button></div>
+</dialog>
+
+<!-- Codex 계정 -->
+<dialog id="dlgCodex">
+  <div class="dlg-h">Codex 계정 연결 (ChatGPT 로그인) <button data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b">
+    <div class="status" id="bridgeStatus"><span class="dot"></span><div>브리지에 연결하지 않았습니다.</div></div>
+    <div class="status" id="codexStatus"><span class="dot"></span><div>Codex 계정 상태를 모릅니다.</div></div>
+    <div class="status" id="claudeCliStatus"><span class="dot"></span><div>Claude 계정(CLI) 상태를 모릅니다.</div></div>
+    <ol class="steps">
+      <li>이 PC에서 <code>python web/bridge.py</code>를 실행합니다. (지식저장소 폴더에서)</li>
+      <li>창에 나온 주소와 토큰을 아래에 넣고 <b>연결 확인</b>을 누릅니다.</li>
+      <li>Codex가 로그인되어 있지 않으면 <b>ChatGPT로 로그인</b>을 누릅니다. 이 PC의 브라우저에 로그인 창이 열립니다.</li>
+    </ol>
+    <div class="field"><label for="brUrl">브리지 주소</label><input type="url" id="brUrl" placeholder="http://127.0.0.1:8765"></div>
+    <div class="field"><label for="brToken">연결 토큰</label><input type="password" id="brToken" autocomplete="off"><div class="hint">계정 방식은 브리지를 켠 PC가 켜져 있을 때만 동작합니다. 구독 사용량에서 차감됩니다.</div></div>
+  </div>
+  <div class="dlg-f"><button class="btn" id="codexLogin" disabled>ChatGPT로 로그인</button><button class="btn primary" id="brTest">저장하고 연결 확인</button></div>
+</dialog>
+
+<!-- GitHub -->
+<dialog id="dlgGh">
+  <div class="dlg-h">GitHub 저장소 연결 <button data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b">
+    <div class="status" id="ghStatus"><span class="dot"></span><div>저장소에 연결하지 않았습니다.</div></div>
+    <div class="field"><label for="ghRepo">저장소 (소유자/이름)</label><input type="text" id="ghRepo" placeholder="소유자/저장소이름"></div>
+    <div class="field"><label for="ghBranch">브랜치</label><input type="text" id="ghBranch" placeholder="main"></div>
+    <div class="field"><label for="ghToken">토큰 (Fine-grained)</label><input type="password" id="ghToken" autocomplete="off">
+      <div class="hint"><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">토큰 만들기</a> → Repository access: 이 저장소만 → Permissions: Contents <b>Read and write</b>.</div></div>
+  </div>
+  <div class="dlg-f"><button class="btn" id="ghRemove">연결 해제</button><button class="btn primary" id="ghTest">저장하고 연결 확인</button></div>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ---------- 저장(브라우저) ---------- */
+const LS_KEY = "kb.settings.v1", CACHE_KEY = "kb.cache.v1";
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+const PROVIDERS = {
+  claude: {name:"Claude API", kind:"api", base:"https://api.anthropic.com/v1", model:"claude-sonnet-5-5",
+           keyHint:'<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic 콘솔</a>에서 발급'},
+  openai: {name:"OpenAI API", kind:"api", base:"https://api.openai.com/v1", model:"",
+           keyHint:'<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI 플랫폼</a>에서 발급. ChatGPT 구독 계정은 아래 Codex 계정으로 연결하세요.'},
+  gemini: {name:"Gemini API", kind:"api", base:"https://generativelanguage.googleapis.com/v1beta", model:"gemini-2.5-flash",
+           keyHint:'<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 발급'},
+  grok:   {name:"Grok API", kind:"api", base:"https://api.x.ai/v1", model:"",
+           keyHint:'<a href="https://console.x.ai" target="_blank" rel="noopener">xAI 콘솔</a>에서 발급'},
+  local:  {name:"로컬 LLM", kind:"api", base:"http://localhost:11434/v1", model:"", local:true,
+           keyHint:"보통 비워 둡니다(LM Studio·vLLM에서 키를 설정한 경우만 입력).",
+           baseHint:'Ollama: <code>http://localhost:11434/v1</code> (환경변수 <code>OLLAMA_ORIGINS=*</code> 필요) · LM Studio: <code>http://localhost:1234/v1</code> (CORS 켜기)'},
+  codex:  {name:"Codex 계정", kind:"bridge"},
+  claudecli:{name:"Claude 계정(CLI)", kind:"bridge"},
+};
+
+const S = Object.assign({providers:{}, bridge:{url:"http://127.0.0.1:8765", token:""}, github:{repo:"", branch:"main", token:""}, engine:"", theme:""}, lsGet(LS_KEY, {}));
+for (const id in PROVIDERS) S.providers[id] = Object.assign({key:"", model:PROVIDERS[id].model||"", base:PROVIDERS[id].base||"", status:"idle", msg:"", models:[]}, S.providers[id]||{});
+S.github = Object.assign({repo:"", branch:"main", token:"", status:"idle", msg:""}, S.github);
+function save(){ lsSet(LS_KEY, S); }
+
+/* ---------- 유틸 ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function md(text){
+  try{ if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(String(text||""))); }catch(e){}
+  return "<pre>"+esc(text)+"</pre>";
+}
+function toast(msg, kind="ok"){
+  const el = document.createElement("div");
+  el.className = "toast "+kind;
+  el.innerHTML = `<span class="dot ${kind==="ok"?"ok":kind==="err"?"err":"busy"}"></span><span>${esc(msg)}</span>`;
+  $("#toasts").appendChild(el);
+  setTimeout(()=>el.remove(), 4500);
+}
+function setStatusBox(el, state, html){
+  el.className = "status " + (state==="ok"?"ok":state==="err"?"err":state==="busy"?"busy":"");
+  el.innerHTML = `<span class="dot ${state==="ok"?"ok":state==="err"?"err":state==="busy"?"busy":""}"></span><div>${html}</div>`;
+}
+function nowStr(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function today(){ return nowStr().slice(0,10); }
+async function fetchJSON(url, opt={}, ms=30000){
+  const ctl = new AbortController(); const t = setTimeout(()=>ctl.abort(), ms);
+  let r;
+  try{ r = await fetch(url, Object.assign({}, opt, {signal:ctl.signal})); }
+  catch(e){ throw new Error(e.name==="AbortError" ? "응답 시간 초과" : "네트워크 오류 또는 브라우저 접근(CORS) 차단"); }
+  finally{ clearTimeout(t); }
+  const txt = await r.text(); let data = null;
+  try{ data = txt ? JSON.parse(txt) : null; }catch(e){}
+  if (!r.ok){
+    const m = data?.error?.message || data?.error || data?.message || txt.slice(0,200) || r.statusText;
+    throw new Error(`HTTP ${r.status}: ${typeof m==="string"?m:JSON.stringify(m)}`);
+  }
+  return data ?? txt;
+}
+
+/* ---------- AI 호출 ---------- */
+function apiHeaders(id){
+  const p = S.providers[id];
+  if (id==="claude") return {"x-api-key":p.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true","content-type":"application/json"};
+  const h = {"content-type":"application/json"};
+  if (p.key) h.Authorization = "Bearer "+p.key;
+  return h;
+}
+async function listModels(id){
+  const p = S.providers[id];
+  if (id==="gemini"){
+    const d = await fetchJSON(`${p.base}/models?key=${encodeURIComponent(p.key)}&pageSize=200`);
+    return (d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>m.name.replace(/^models\//,""));
+  }
+  const d = await fetchJSON(`${p.base.replace(/\/$/,"")}/models`, {headers:apiHeaders(id)});
+  return (d.data||[]).map(m=>m.id);
+}
+function pickDefaultModel(id, models){
+  const pref = {claude:[/sonnet/,/opus/], openai:[/^gpt-5(?!.*(mini|nano|audio|realtime|image|search))/, /^gpt-4\.1$/, /^gpt-4o$/], grok:[/^grok-4(?!.*image)/, /^grok/]}[id] || [];
+  for (const re of pref){ const m = models.find(x=>re.test(x)); if (m) return m; }
+  return models[0] || "";
+}
+async function callAPI(id, system, messages){
+  const p = S.providers[id];
+  if (!p.model) throw new Error(`${PROVIDERS[id].name}의 모델을 정하지 않았습니다.`);
+  if (id==="claude"){
+    const d = await fetchJSON(`${p.base}/messages`, {method:"POST", headers:apiHeaders(id),
+      body:JSON.stringify({model:p.model, max_tokens:4096, system, messages})}, 180000);
+    return (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+  }
+  if (id==="gemini"){
+    const d = await fetchJSON(`${p.base}/models/${encodeURIComponent(p.model)}:generateContent?key=${encodeURIComponent(p.key)}`, {method:"POST", headers:{"content-type":"application/json"},
+      body:JSON.stringify({systemInstruction:{parts:[{text:system}]}, contents:messages.map(m=>({role:m.role==="assistant"?"model":"user", parts:[{text:m.content}]}))})}, 180000);
+    return (d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||"").join("");
+  }
+  const d = await fetchJSON(`${p.base.replace(/\/$/,"")}/chat/completions`, {method:"POST", headers:apiHeaders(id),
+    body:JSON.stringify({model:p.model, messages:[{role:"system", content:system}, ...messages]})}, 300000);
+  return d.choices?.[0]?.message?.content || "";
+}
+async function bridge(path, body){
+  const b = S.bridge;
+  const opt = {headers:{"X-Bridge-Token":b.token, "content-type":"application/json"}};
+  if (body){ opt.method="POST"; opt.body=JSON.stringify(body); }
+  return fetchJSON(b.url.replace(/\/$/,"")+path, opt, body?320000:20000);
+}
+async function callAI(id, system, messages){
+  if (PROVIDERS[id].kind==="bridge"){
+    const convo = messages.map(m=>`[${m.role==="user"?"사용자":"AI"}]\n${m.content}`).join("\n\n");
+    const prompt = `${system}\n\n---\n${convo}\n\n[AI]`;
+    const d = await bridge("/chat", {engine: id==="codex"?"codex":"claude", prompt, model:S.providers[id].model||undefined});
+    return d.text;
+  }
+  return callAPI(id, system, messages);
+}
+
+/* ---------- 연결 상태 ---------- */
+function setProv(id, status, msg){ Object.assign(S.providers[id], {status, msg, checkedAt:nowStr()}); save(); renderChips(); renderEngines(); renderProvList(); }
+async function testProvider(id, quiet){
+  const p = S.providers[id];
+  if (!p.key && !PROVIDERS[id].local){ setProv(id, "idle", "API 키 없음"); return; }
+  setProv(id, "busy", "확인 중…");
+  try{
+    const models = await listModels(id);
+    p.models = models.slice(0,200);
+    if (!p.model || (models.length && !models.includes(p.model) && id!=="gemini")) p.model = pickDefaultModel(id, models) || p.model;
+    setProv(id, "ok", `연결됨 · 모델 ${models.length}개 · 사용: ${p.model||"(선택 필요)"}`);
+    if (!quiet) toast(`${PROVIDERS[id].name} 연결됨`);
+  }catch(e){
+    let m = e.message;
+    if (PROVIDERS[id].local && /CORS|네트워크/.test(m)) m += " — 로컬 LLM이 켜져 있는지, CORS 허용 설정을 확인하세요.";
+    if (id==="grok" && /CORS|네트워크/.test(m)) m += " — xAI가 브라우저 직접 호출을 막았을 수 있습니다.";
+    setProv(id, "err", m);
+    if (!quiet) toast(`${PROVIDERS[id].name} 연결 실패`, "err");
+  }
+}
+async function testBridge(quiet){
+  const bs = $("#bridgeStatus"), cs = $("#codexStatus"), ls = $("#claudeCliStatus");
+  if (!S.bridge.token){ setProv("codex","idle","브리지 토큰 없음"); setProv("claudecli","idle","브리지 토큰 없음"); return; }
+  setStatusBox(bs, "busy", "브리지 확인 중…");
+  try{
+    const d = await bridge("/status");
+    setStatusBox(bs, "ok", `브리지 연결됨 <span class="hint">(${esc(S.bridge.url)})</span>`);
+    const c = d.codex, l = d.claude;
+    if (c.loggedIn){ setStatusBox(cs, "ok", `<b>Codex 계정 연결됨</b><div class="hint">${esc(c.detail)} · ${esc(c.version)}</div>`); setProv("codex","ok", `연결됨 · ${c.detail}`); }
+    else if (c.loginInProgress){ setStatusBox(cs, "busy", "로그인 진행 중… 이 PC의 브라우저에서 로그인을 마치세요."); setProv("codex","busy","로그인 진행 중"); }
+    else { setStatusBox(cs, "err", `<b>Codex 로그인 필요</b><div class="hint">${esc(c.detail)}</div>`); setProv("codex","err", c.detail||"로그인 필요"); }
+    if (l.loggedIn){ setStatusBox(ls, "ok", `<b>Claude 계정 연결됨</b><div class="hint">${esc(l.detail)} · ${esc(l.version)}</div>`); setProv("claudecli","ok", `연결됨 · ${l.detail}`); }
+    else { setStatusBox(ls, "err", `<b>Claude 계정 로그인 필요</b><div class="hint">${esc(l.detail)} — PC에서 <code>claude</code>를 실행해 로그인하세요.</div>`); setProv("claudecli","err", l.detail||"로그인 필요"); }
+    $("#codexLogin").disabled = !!c.loggedIn || !c.installed;
+    if (!quiet) toast(c.loggedIn ? "Codex 계정 연결됨" : "브리지 연결됨 (Codex 로그인 필요)", c.loggedIn?"ok":"warn");
+    return d;
+  }catch(e){
+    const m = /401/.test(e.message) ? "토큰이 맞지 않습니다." : "브리지에 연결할 수 없습니다. PC에서 python web/bridge.py를 실행했는지 확인하세요.";
+    setStatusBox(bs, "err", esc(m)+`<div class="hint">${esc(e.message)}</div>`);
+    setStatusBox(cs, "", "Codex 계정 상태를 모릅니다."); setStatusBox(ls, "", "Claude 계정(CLI) 상태를 모릅니다.");
+    setProv("codex","err",m); setProv("claudecli","err",m);
+    $("#codexLogin").disabled = true;
+    if (!quiet) toast("브리지 연결 실패", "err");
+  }
+}
+let loginPoll = null;
+async function codexLogin(){
+  try{
+    const d = await bridge("/codex/login", {});
+    setStatusBox($("#codexStatus"), "busy", esc(d.message));
+    toast("ChatGPT 로그인 창을 열었습니다");
+    clearInterval(loginPoll);
+    let n = 0;
+    loginPoll = setInterval(async()=>{
+      n++;
+      const s = await testBridge(true).catch(()=>null);
+      if (s?.codex?.loggedIn){ clearInterval(loginPoll); toast("Codex 계정 연결됨"); }
+      else if (n>60){ clearInterval(loginPoll); toast("로그인 확인 시간이 지났습니다. 다시 시도하세요.","err"); }
+    }, 3000);
+  }catch(e){ toast("로그인 시작 실패: "+e.message, "err"); }
+}
+
+/* ---------- 화면: 칩·엔진 목록 ---------- */
+function chipHTML(label, st, title){ return `<span class="dot ${st==="ok"?"ok":st==="err"?"err":st==="busy"?"busy":""}"></span>${esc(label)}`; }
+function renderChips(){
+  const box = $("#chips"); box.innerHTML = "";
+  const add = (label, st, title, onclick) => { const b=document.createElement("button"); b.className="chip"; b.title=title||""; b.innerHTML=chipHTML(label, st); b.onclick=onclick; box.appendChild(b); };
+  for (const id in PROVIDERS){ const p=S.providers[id]; add(PROVIDERS[id].name, p.status, p.msg, ()=> PROVIDERS[id].kind==="bridge" ? openCodex() : openApi(id)); }
+  add("GitHub", S.github.status, S.github.msg, openGh);
+  const m = document.createElement("button"); m.className="chip"; m.textContent="연결 관리"; m.onclick=()=>{ renderProvList(); $("#dlgConn").showModal(); }; box.appendChild(m);
+}
+function renderProvList(){
+  const box = $("#provList"); if (!box) return; box.innerHTML = "";
+  const row = (label, st, msg, fn) => { const b=document.createElement("button"); b.className="prov"; b.innerHTML=`<span class="dot ${st==="ok"?"ok":st==="err"?"err":st==="busy"?"busy":""}"></span><span class="nm">${esc(label)}</span><span class="st">${esc(msg||"미설정")}</span>`; b.onclick=()=>{ $("#dlgConn").close(); fn(); }; box.appendChild(b); };
+  for (const id in PROVIDERS){ const p=S.providers[id]; row(PROVIDERS[id].name, p.status, p.msg, ()=> PROVIDERS[id].kind==="bridge" ? openCodex() : openApi(id)); }
+  row("GitHub 저장소", S.github.status, S.github.msg, openGh);
+}
+function renderEngines(){
+  const sel = $("#engine"); const cur = S.engine || sel.value;
+  sel.innerHTML = "";
+  for (const id in PROVIDERS){
+    const p = S.providers[id], o = document.createElement("option");
+    o.value = id; o.textContent = (p.status==="ok"?"● ":"○ ") + PROVIDERS[id].name + (p.model && PROVIDERS[id].kind==="api" ? ` · ${p.model}` : "");
+    sel.appendChild(o);
+  }
+  const firstOk = Object.keys(PROVIDERS).find(id=>S.providers[id].status==="ok");
+  sel.value = (cur && PROVIDERS[cur]) ? cur : (firstOk || "claude");
+}
+
+/* ---------- 대화상자 ---------- */
+document.querySelectorAll("dialog [data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
+let apiId = null;
+function openApi(id){
+  apiId = id; const P = PROVIDERS[id], p = S.providers[id];
+  $("#apiTitle").textContent = P.name + " 연결";
+  $("#fBase").hidden = !P.local; $("#apiBase").value = p.base; $("#baseHint").innerHTML = P.baseHint||"";
+  $("#apiKey").value = p.key; $("#keyHint").innerHTML = P.keyHint||"";
+  $("#fKey").querySelector("label").textContent = P.local ? "API 키 (선택)" : "API 키";
+  $("#apiModel").value = p.model;
+  $("#modelList").innerHTML = (p.models||[]).map(m=>`<option value="${esc(m)}">`).join("");
+  refreshApiBox(); $("#dlgApi").showModal();
+}
+function refreshApiBox(){ if (!apiId) return; const p=S.providers[apiId]; setStatusBox($("#apiStatus"), p.status, p.status==="idle" ? "아직 연결하지 않았습니다." : `<b>${esc(p.status==="ok"?"연결됨":p.status==="busy"?"확인 중":"연결 실패")}</b><div class="hint">${esc(p.msg)}${p.checkedAt?" · "+esc(p.checkedAt):""}</div>`); }
+$("#apiTest").onclick = async()=>{
+  const p = S.providers[apiId];
+  p.key = $("#apiKey").value.trim(); p.model = $("#apiModel").value.trim();
+  if (PROVIDERS[apiId].local) p.base = $("#apiBase").value.trim() || PROVIDERS[apiId].base;
+  save(); refreshApiBox();
+  const id = apiId; await testProvider(id); if (apiId===id){ refreshApiBox(); $("#apiModel").value = S.providers[id].model; $("#modelList").innerHTML=(S.providers[id].models||[]).map(m=>`<option value="${esc(m)}">`).join(""); }
+};
+$("#apiRemove").onclick = ()=>{ Object.assign(S.providers[apiId], {key:"", status:"idle", msg:"", models:[]}); save(); setProv(apiId,"idle",""); refreshApiBox(); $("#apiKey").value=""; toast(PROVIDERS[apiId].name+" 연결 해제"); };
+
+function openCodex(){ $("#brUrl").value = S.bridge.url; $("#brToken").value = S.bridge.token; $("#dlgCodex").showModal(); if (S.bridge.token) testBridge(true); }
+$("#brTest").onclick = ()=>{ S.bridge.url = $("#brUrl").value.trim() || "http://127.0.0.1:8765"; S.bridge.token = $("#brToken").value.trim(); save(); testBridge(false); };
+$("#codexLogin").onclick = codexLogin;
+
+function openGh(){ $("#ghRepo").value=S.github.repo; $("#ghBranch").value=S.github.branch||"main"; $("#ghToken").value=S.github.token; refreshGhBox(); $("#dlgGh").showModal(); }
+function refreshGhBox(){ const g=S.github; setStatusBox($("#ghStatus"), g.status, g.status==="idle"?"저장소에 연결하지 않았습니다.":`<b>${g.status==="ok"?"연결됨":g.status==="busy"?"확인 중":"연결 실패"}</b><div class="hint">${esc(g.msg)}</div>`); }
+$("#ghTest").onclick = async()=>{ S.github.repo=$("#ghRepo").value.trim().replace(/^https?:\/\/github\.com\//,"").replace(/\.git$/,""); S.github.branch=$("#ghBranch").value.trim()||"main"; S.github.token=$("#ghToken").value.trim(); save(); await testGithub(false); refreshGhBox(); };
+$("#ghRemove").onclick = ()=>{ Object.assign(S.github,{token:"",status:"idle",msg:""}); save(); renderChips(); refreshGhBox(); $("#ghToken").value=""; NOTES=[]; renderDash(); toast("GitHub 연결 해제"); };
+
+/* ---------- GitHub 저장소 ---------- */
+const GH = "https://api.github.com";
+function ghHeaders(extra){ return Object.assign({"Authorization":"Bearer "+S.github.token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"}, extra||{}); }
+const encPath = p => p.split("/").map(encodeURIComponent).join("/");
+function b64utf8(s){ const bytes=new TextEncoder().encode(s); let bin=""; for (let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
+function setGh(status, msg){ Object.assign(S.github,{status,msg}); save(); renderChips(); renderProvList(); $("#repoInfo").textContent = status==="ok" ? S.github.repo : "GitHub 미연결"; }
+async function testGithub(quiet){
+  if (!S.github.repo || !S.github.token){ setGh("idle","저장소·토큰 미입력"); return; }
+  setGh("busy","확인 중…");
+  try{
+    const r = await fetchJSON(`${GH}/repos/${S.github.repo}`, {headers:ghHeaders()});
+    const canWrite = r.permissions?.push;
+    setGh(canWrite?"ok":"err", `${r.private?"비공개":"공개"} 저장소 · ${canWrite?"읽기·쓰기 가능":"쓰기 권한 없음(토큰 권한 확인)"}`);
+    if (!quiet) toast(canWrite ? "GitHub 저장소 연결됨" : "GitHub 쓰기 권한 없음", canWrite?"ok":"err");
+    await loadNotes();
+  }catch(e){ setGh("err", e.message); if (!quiet) toast("GitHub 연결 실패","err"); }
+}
+let NOTES = [], CATS = [], filterCat = "", selected = null;
+function parseFront(text){
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text); const fm = {};
+  if (m){ m[1].split(/\r?\n/).forEach(line=>{ const i=line.indexOf(":"); if (i<0) return; const k=line.slice(0,i).trim(); let v=line.slice(i+1).trim();
+    if (/^\[.*\]$/.test(v)) v = v.slice(1,-1).split(",").map(x=>x.trim().replace(/^["']|["']$/g,"")).filter(Boolean); else v = v.replace(/^["']|["']$/g,""); fm[k]=v; }); }
+  return {fm, body: m ? text.slice(m[0].length) : text};
+}
+async function loadNotes(){
+  if (S.github.status!=="ok" && S.github.status!=="busy") return;
+  $("#notes").innerHTML = `<li class="empty">저장소를 읽는 중…</li>`;
+  try{
+    const tree = await fetchJSON(`${GH}/repos/${S.github.repo}/git/trees/${encodeURIComponent(S.github.branch)}?recursive=1`, {headers:ghHeaders()});
+    const items = tree.tree||[];
+    CATS = items.filter(t=>t.type==="tree" && /^\d\d_[^/]+$/.test(t.path)).map(t=>t.path).sort();
+    const files = items.filter(t=>t.type==="blob" && /^\d\d_[^/]+\/.+\.md$/.test(t.path) && !/\/README\.md$/i.test(t.path));
+    const cache = lsGet(CACHE_KEY, {}); const fresh = {};
+    let i = 0; const out = [];
+    async function worker(){ while (i < files.length){ const f = files[i++];
+      let text = cache[f.path]?.sha===f.sha ? cache[f.path].text : null;
+      if (text===null){ text = await fetchJSON(`${GH}/repos/${S.github.repo}/contents/${encPath(f.path)}?ref=${encodeURIComponent(S.github.branch)}`, {headers:ghHeaders({"Accept":"application/vnd.github.raw+json"})}); if (typeof text!=="string") text = JSON.stringify(text); }
+      fresh[f.path] = {sha:f.sha, text};
+      const {fm, body} = parseFront(text);
+      out.push({path:f.path, sha:f.sha, text, body, cat:f.path.split("/")[0], title: fm.title || (/^#\s+(.+)$/m.exec(body)||[])[1] || f.path.split("/").pop().replace(/\.md$/,""), tags: Array.isArray(fm.tags)?fm.tags:(fm.tags?[fm.tags]:[]), created: fm.created||"", summary: fm.summary||"", source: fm.source||""});
+    } }
+    await Promise.all(Array.from({length:6}, worker));
+    lsSet(CACHE_KEY, fresh);
+    NOTES = out.sort((a,b)=> (b.created||b.path).localeCompare(a.created||a.path));
+    renderDash();
+  }catch(e){ $("#notes").innerHTML = `<li class="empty">저장소를 읽지 못했습니다: ${esc(e.message)}</li>`; }
+}
+async function putFile(path, content, message, sha){
+  const body = {message, content:b64utf8(content), branch:S.github.branch}; if (sha) body.sha = sha;
+  return fetchJSON(`${GH}/repos/${S.github.repo}/contents/${encPath(path)}`, {method:"PUT", headers:ghHeaders({"content-type":"application/json"}), body:JSON.stringify(body)});
+}
+
+/* ---------- 대시보드 ---------- */
+const catLabel = c => c.replace(/^\d\d_/,"");
+function renderDash(){
+  const st = $("#stats"); st.innerHTML = "";
+  const mk = (label, n, cat) => { const b=document.createElement("button"); b.className="stat"+(filterCat===cat?" active":""); b.innerHTML=`<b>${n}</b><span>${esc(label)}</span>`; b.onclick=()=>{ filterCat = filterCat===cat ? "" : cat; renderDash(); }; st.appendChild(b); };
+  mk("전체", NOTES.length, "");
+  CATS.forEach(c=>mk(catLabel(c), NOTES.filter(n=>n.cat===c).length, c));
+  const q = $("#search").value.trim().toLowerCase();
+  const list = NOTES.filter(n=>(!filterCat||n.cat===filterCat) && (!q || (n.title+" "+n.tags.join(" ")+" "+n.text).toLowerCase().includes(q)));
+  const ul = $("#notes");
+  if (S.github.status!=="ok"){ ul.innerHTML = `<li class="empty">상단의 <b>GitHub</b>을 눌러 저장소를 연결하면 노트가 여기에 보입니다.</li>`; return; }
+  if (!list.length){ ul.innerHTML = `<li class="empty">${NOTES.length? "조건에 맞는 노트가 없습니다." : "아직 노트가 없습니다. 오른쪽 대화 채널에 첫 씨앗을 심어 보세요."}</li>`; return; }
+  ul.innerHTML = "";
+  list.slice(0,300).forEach(n=>{
+    const li = document.createElement("li"); if (selected===n.path) li.className="sel";
+    li.innerHTML = `<div class="t">${esc(n.title)}</div><div class="m"><span>${esc(catLabel(n.cat))}</span>${n.created?`<span>${esc(n.created)}</span>`:""}${n.tags.slice(0,5).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>`;
+    li.onclick = ()=>showNote(n.path); ul.appendChild(li);
+  });
+}
+$("#search").oninput = renderDash;
+$("#reloadBtn").onclick = ()=> S.github.status==="ok" ? loadNotes() : openGh();
+function showNote(path){
+  const n = NOTES.find(x=>x.path===path); if (!n) return;
+  selected = path; renderDash();
+  $("#viewerWrap").hidden = false;
+  $("#viewer").innerHTML = `<div class="acts"><button class="btn primary" id="enrichBtn">AI로 살 붙이기</button><a class="btn" href="https://github.com/${esc(S.github.repo)}/blob/${encodeURIComponent(S.github.branch)}/${esc(encPath(n.path))}" target="_blank" rel="noopener">GitHub에서 보기</a><button class="btn" id="closeView">닫기</button></div>`+md(n.body);
+  $("#closeView").onclick = ()=>{ $("#viewerWrap").hidden = true; selected=null; renderDash(); };
+  $("#enrichBtn").onclick = ()=>enrich(n);
+  $("#viewerWrap").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+/* ---------- 대화 채널 ---------- */
+let mode = "seed", history = [];
+$("#modeSeed").onclick = ()=>{ mode="seed"; $("#modeSeed").classList.add("on"); $("#modeAsk").classList.remove("on"); $("#input").placeholder="생각, 메모, 링크를 그대로 적으세요. (Enter 보내기, Shift+Enter 줄바꿈)"; };
+$("#modeAsk").onclick = ()=>{ mode="ask"; $("#modeAsk").classList.add("on"); $("#modeSeed").classList.remove("on"); $("#input").placeholder="지식저장소에 물어보세요. 예) 홀로그램 관련 정리된 내용 요약해줘"; };
+$("#engine").onchange = e=>{ S.engine = e.target.value; save(); };
+$("#clearChat").onclick = ()=>{ history=[]; $("#msgs").innerHTML=""; addMsg("sys","대화를 비웠습니다."); };
+function addMsg(kind, html, who){
+  const el = document.createElement("div"); el.className = "msg "+kind;
+  if (kind==="me") el.textContent = html; else el.innerHTML = (who?`<div class="who">${esc(who)}</div>`:"")+html;
+  $("#msgs").appendChild(el); el.scrollIntoView({block:"end"}); return el;
+}
+function extractJSON(t){
+  const fence = /```(?:json)?\s*([\s\S]*?)```/.exec(t); const s = fence ? fence[1] : t;
+  const a = s.indexOf("{"), b = s.lastIndexOf("}"); if (a<0||b<a) throw new Error("AI 응답에서 JSON을 찾지 못했습니다.");
+  return JSON.parse(s.slice(a,b+1));
+}
+function indexText(limit=120){ return NOTES.slice(0,limit).map(n=>`- [${catLabel(n.cat)}] ${n.title}${n.tags.length?" #"+n.tags.join(" #"):""}${n.summary?" — "+n.summary:""}`).join("\n") || "(아직 노트 없음)"; }
+function relevantNotes(q, k=5, budget=12000){
+  const words = q.toLowerCase().split(/[\s,.!?·]+/).filter(w=>w.length>=2);
+  const scored = NOTES.map(n=>{ const hay=(n.title+" "+n.tags.join(" ")+" "+n.text).toLowerCase(); let s=0; words.forEach(w=>{ if (hay.includes(w)) s += n.title.toLowerCase().includes(w)?3:1; }); return {n,s}; }).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,k);
+  let used=0; return scored.map(({n})=>{ const t=n.text.slice(0, Math.max(0, Math.min(4000, budget-used))); used+=t.length; return `### ${n.title} (${n.path})\n${t}`; }).filter(Boolean).join("\n\n");
+}
+const SEED_SYS = () => `당신은 개인 지식저장소의 정리 담당입니다. 사용자가 던진 짧은 생각·메모·링크(씨앗)를 받아 하나의 노트로 정리합니다.
+규칙:
+- 카테고리는 다음 폴더 중 하나를 고릅니다: ${CATS.join(", ")||"00_수신함"}. 맞는 것이 없으면 "00_수신함"을 고르고 new_category 에 새 폴더 이름(예: "50_건강")을 제안합니다.
+- 사용자가 쓰지 않은 사실을 지어내지 않습니다. 보강 내용은 일반 지식 수준에서 쓰고, 확인이 필요한 부분은 "확인 필요"라고 적습니다.
+- 한국어로, 짧은 문장으로 씁니다.
+- 기존 노트와 관련 있으면 related 에 그 노트 제목을 넣습니다.
+기존 노트 목록:
+${indexText()}
+
+반드시 아래 JSON 하나만 출력합니다(설명 금지).
+{"category":"폴더명","new_category":"","title":"노트 제목","tags":["태그"],"summary":"한 문장 요약","body":"마크다운 본문. '## 핵심 정리', '## 보강 설명', '## 더 알아볼 것' 절로 구성","related":["기존 노트 제목"]}`;
+const ASK_SYS = q => `당신은 사용자의 개인 지식저장소를 잘 아는 조수입니다. 아래 노트 목록과 관련 노트 본문을 근거로 한국어로 답합니다. 근거가 된 노트 제목을 답 끝에 "참고:"로 적습니다. 저장소에 없는 내용은 없다고 말하고, 일반 지식으로 보충할 때는 그렇다고 밝힙니다.
+
+노트 목록:
+${indexText(200)}
+
+관련 노트 본문:
+${relevantNotes(q) || "(일치하는 노트 없음)"}`;
+
+async function send(){
+  const text = $("#input").value.trim(); if (!text) return;
+  const id = $("#engine").value; const P = PROVIDERS[id];
+  if (S.providers[id].status!=="ok"){ toast(`${P.name}이(가) 연결되지 않았습니다. 먼저 연결하세요.`, "err"); return P.kind==="bridge"?openCodex():openApi(id); }
+  $("#input").value = ""; addMsg("me", text);
+  const wait = addMsg("sys", `${P.name} 처리 중…`); $("#sendBtn").disabled = true;
+  try{
+    if (mode==="seed"){
+      const raw = await callAI(id, SEED_SYS(), [{role:"user", content:text}]);
+      wait.remove(); seedCard(text, extractJSON(raw), id);
+    } else {
+      history.push({role:"user", content:text});
+      const ans = await callAI(id, ASK_SYS(text), history.slice(-10));
+      history.push({role:"assistant", content:ans});
+      wait.remove(); addMsg("ai", md(ans), P.name);
+    }
+  }catch(e){ wait.remove(); addMsg("ai", `<b>오류</b><div class="hint">${esc(e.message)}</div>`, P.name); }
+  finally{ $("#sendBtn").disabled = false; }
+}
+$("#sendBtn").onclick = send;
+$("#input").addEventListener("keydown", e=>{ if (e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); } });
+
+function slug(s){ return String(s).trim().replace(/[\\/:*?"<>|#%\[\]]/g,"").replace(/\s+/g,"-").slice(0,60) || "노트"; }
+function seedCard(seed, j, engineId){
+  const cats = CATS.length ? CATS : ["00_수신함"];
+  let cat = cats.includes(j.category) ? j.category : (cats.find(c=>catLabel(c)===catLabel(String(j.category||"")))||cats[0]);
+  const el = addMsg("ai", "", PROVIDERS[engineId].name);
+  el.innerHTML += `<div class="card">
+    <div class="row"><label>카테고리</label><select class="c-cat">${cats.map(c=>`<option ${c===cat?"selected":""}>${esc(c)}</option>`).join("")}</select></div>
+    ${j.new_category?`<div class="hint" style="margin:-2px 0 6px 78px">AI 제안 새 카테고리: <b>${esc(j.new_category)}</b> (선택하면 폴더가 새로 생깁니다) <button class="btn c-newcat" style="padding:2px 8px">사용</button></div>`:""}
+    <div class="row"><label>제목</label><input type="text" class="c-title" value="${esc(j.title||"")}"></div>
+    <div class="row"><label>태그</label><input type="text" class="c-tags" value="${esc((j.tags||[]).join(", "))}"></div>
+    <div class="row"><label>요약</label><input type="text" class="c-sum" value="${esc(j.summary||"")}"></div>
+    <details><summary>본문 미리보기</summary><div class="viewer" style="padding:4px 0">${md(j.body||"")}</div></details>
+    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary c-save">GitHub에 저장</button><button class="btn c-drop">버리기</button></div></div>`;
+  const q = s => el.querySelector(s);
+  q(".c-newcat")?.addEventListener("click", ()=>{ const v=String(j.new_category).replace(/[\\/]/g,""); const o=document.createElement("option"); o.textContent=v; q(".c-cat").appendChild(o); q(".c-cat").value=v; });
+  q(".c-drop").onclick = ()=>{ el.querySelector(".card").innerHTML = `<span class="hint">버렸습니다.</span>`; };
+  q(".c-save").onclick = async()=>{
+    if (S.github.status!=="ok"){ toast("GitHub 저장소를 먼저 연결하세요.","err"); return openGh(); }
+    const title = q(".c-title").value.trim() || "제목 없음", category = q(".c-cat").value;
+    const tags = q(".c-tags").value.split(",").map(s=>s.trim()).filter(Boolean), summary = q(".c-sum").value.trim();
+    const related = (j.related||[]).filter(Boolean);
+    const content = `---
+title: ${title.replace(/\n/g," ")}
+category: ${category}
+tags: [${tags.join(", ")}]
+created: ${nowStr()}
+summary: ${summary.replace(/\n/g," ")}
+ai: ${PROVIDERS[engineId].name}${S.providers[engineId].model?" ("+S.providers[engineId].model+")":""}
+---
+
+# ${title}
+
+## 씨앗 (원문)
+
+${seed.split("\n").map(l=>"> "+l).join("\n")}
+
+${(j.body||"").trim()}
+${related.length?`\n## 관련 노트\n\n${related.map(r=>"- "+r).join("\n")}\n`:""}`;
+    const path = `${category}/${today()}-${slug(title)}.md`;
+    q(".c-save").disabled = true;
+    try{
+      await putFile(path, content, `씨앗: ${title} (${PROVIDERS[engineId].name})`);
+      el.querySelector(".card").innerHTML = `<b>저장했습니다.</b><div class="hint">${esc(path)}</div>`;
+      toast("노트를 저장했습니다"); await loadNotes();
+    }catch(e){ q(".c-save").disabled=false; toast("저장 실패: "+e.message, "err"); }
+  };
+}
+async function enrich(n){
+  const id = $("#engine").value, P = PROVIDERS[id];
+  if (S.providers[id].status!=="ok"){ toast(`${P.name}이(가) 연결되지 않았습니다.`, "err"); return; }
+  const btn = $("#enrichBtn"); btn.disabled = true; btn.textContent = "보강 중…";
+  try{
+    const sys = `당신은 개인 지식저장소의 정리 담당입니다. 주어진 노트에 덧붙일 '보강' 절 하나를 마크다운으로 씁니다. 기존 내용을 반복하지 말고, 빠진 배경·예시·연결 지점·확인할 점을 더합니다. 지어낸 사실은 쓰지 않고, 확인이 필요하면 "확인 필요"라고 적습니다. 제목 줄(##) 없이 본문만 출력합니다.\n\n다른 노트 목록:\n${indexText(80)}`;
+    const add = (await callAI(id, sys, [{role:"user", content:n.text}])).trim();
+    if (!add) throw new Error("빈 응답");
+    const content = n.text.replace(/\s*$/,"") + `\n\n## AI 보강 (${nowStr()}, ${P.name})\n\n${add}\n`;
+    await putFile(n.path, content, `보강: ${n.title} (${P.name})`, n.sha);
+    toast("보강 내용을 저장했습니다"); await loadNotes(); showNote(n.path);
+  }catch(e){ toast("보강 실패: "+e.message, "err"); btn.disabled=false; btn.textContent="AI로 살 붙이기"; }
+}
+
+/* ---------- 테마·시작 ---------- */
+function applyTheme(){ if (S.theme) document.documentElement.setAttribute("data-theme", S.theme); else document.documentElement.removeAttribute("data-theme"); }
+$("#themeBtn").onclick = ()=>{ const dark = S.theme ? S.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; S.theme = dark ? "light" : "dark"; save(); applyTheme(); };
+applyTheme(); renderChips(); renderEngines(); renderDash();
+addMsg("sys", "씨앗 심기: 생각을 적으면 AI가 분류·보강해 노트 초안을 만듭니다. 확인 후 저장하세요.");
+(async()=>{
+  // 저장된 연결을 다시 확인해 상태 표시를 최신으로 맞춘다.
+  for (const id in PROVIDERS){ const p=S.providers[id]; if (PROVIDERS[id].kind==="api" && (p.key || (PROVIDERS[id].local && p.status!=="idle"))) testProvider(id, true); }
+  if (S.bridge.token) testBridge(true);
+  if (S.github.token) testGithub(true);
+})();
+</script>
+</body>
+</html>
