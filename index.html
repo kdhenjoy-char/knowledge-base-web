@@ -230,7 +230,44 @@ const PROVIDERS = {
 const S = Object.assign({providers:{}, bridge:{url:"http://127.0.0.1:8765", token:""}, github:{repo:"", branch:"main", token:""}, engine:"", theme:""}, lsGet(LS_KEY, {}));
 for (const id in PROVIDERS) S.providers[id] = Object.assign({key:"", model:PROVIDERS[id].model||"", base:PROVIDERS[id].base||"", status:"idle", msg:"", models:[]}, S.providers[id]||{});
 S.github = Object.assign({repo:"", branch:"main", token:"", status:"idle", msg:""}, S.github);
-function save(){ lsSet(LS_KEY, S); }
+/* 연결 설정은 브라우저(localStorage)와 이 PC의 브리지 파일(web/.local_settings.json)에 함께 저장한다.
+   브라우저·주소·프로필이 바뀌어도 브리지가 켜져 있으면 설정을 다시 불러온다. */
+let bridgeSync = false, bridgeSyncTimer = null;
+const bridgeBase = ()=> (S.bridge.url || "http://127.0.0.1:8765").replace(/\/+$/,"");
+function save(){ lsSet(LS_KEY, S); if (bridgeSync){ clearTimeout(bridgeSyncTimer); bridgeSyncTimer = setTimeout(pushSettings, 500); } }
+function settingsForFile(){
+  const P = {}; for (const id in S.providers){ const p=S.providers[id]; P[id] = {key:p.key, model:p.model, base:p.base}; }
+  return {providers:P, github:{repo:S.github.repo, branch:S.github.branch, token:S.github.token}, bridge:{url:S.bridge.url}, engine:S.engine, theme:S.theme};
+}
+async function pushSettings(){
+  try{ await fetch(bridgeBase()+"/settings", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({settings:settingsForFile()})}); }catch(e){}
+}
+async function pullSettings(){
+  const ctl = new AbortController(); const t = setTimeout(()=>ctl.abort(), 2500);
+  try{
+    const r = await fetch(bridgeBase()+"/settings", {signal:ctl.signal});
+    if (!r.ok) return false;
+    const d = await r.json(); const f = d.settings || {};
+    if (d.bridgeToken) S.bridge.token = d.bridgeToken;
+    const hasSecret = o => !!(o && (o.github?.token || Object.values(o.providers||{}).some(p=>p && p.key)));
+    if (hasSecret(f)){
+      for (const id in (f.providers||{})) if (S.providers[id]){
+        const p = S.providers[id], q = f.providers[id];
+        if (p.key !== q.key || p.base !== q.base){ p.status = "idle"; p.msg = ""; p.models = []; }
+        Object.assign(p, {key:q.key||"", model:q.model||p.model, base:q.base||p.base});
+      }
+      if (f.github){ if (S.github.token !== (f.github.token||"")){ S.github.status="idle"; S.github.msg=""; } Object.assign(S.github, {repo:f.github.repo||"", branch:f.github.branch||"main", token:f.github.token||""}); }
+      if (typeof f.engine === "string") S.engine = f.engine;
+      if (typeof f.theme === "string") S.theme = f.theme;
+      bridgeSync = true; lsSet(LS_KEY, S);
+    } else { // PC 파일이 비어 있으면 이 브라우저에 있던 설정을 옮긴다(빈 설정으로 덮어쓰지 않는다)
+      bridgeSync = true; lsSet(LS_KEY, S);
+      if (hasSecret(settingsForFile())) pushSettings();
+    }
+    return true;
+  }catch(e){ return false; }
+  finally{ clearTimeout(t); }
+}
 
 /* ---------- 유틸 ---------- */
 const $ = s => document.querySelector(s);
@@ -684,6 +721,8 @@ $("#themeBtn").onclick = ()=>{ const dark = S.theme ? S.theme==="dark" : matchMe
 applyTheme(); renderChips(); renderEngines(); renderDash();
 addMsg("sys", "씨앗 심기: 생각을 적으면 AI가 분류·보강해 노트 초안을 만듭니다. 확인 후 저장하세요.");
 (async()=>{
+  // 이 PC의 브리지에 저장된 연결 설정을 먼저 불러온다(브리지가 꺼져 있으면 브라우저 저장분만 쓴다).
+  if (await pullSettings()){ applyTheme(); renderChips(); renderEngines(); renderDash(); }
   // 저장된 연결을 다시 확인해 상태 표시를 최신으로 맞춘다.
   for (const id in PROVIDERS){ const p=S.providers[id]; if (PROVIDERS[id].kind==="api" && (p.key || (PROVIDERS[id].local && p.status!=="idle"))) testProvider(id, true); }
   if (S.bridge.token) testBridge(true);
